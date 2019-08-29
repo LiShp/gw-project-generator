@@ -1,0 +1,96 @@
+server:
+  port: 9901
+  servlet:
+   context-path: /project/autocode
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    serviceUrl:
+      defaultZone: http://${EUREKA_ZONE_HOST:10.255.21.15}:${EUREKA_ZONE_PORT:8761}/eureka/,http://${EUREKA_ZONE_HOST:10.255.21.17}:${EUREKA_ZONE_PORT:8761}/eureka/,http://${EUREKA_ZONE_HOST:10.255.21.18}:${EUREKA_ZONE_PORT:8761}/eureka/
+feign:
+  hystrix:
+    enabled: true
+
+hystrix:
+  default:
+    coreSize: 50 #并发执行的最大线程数 50
+    maxQueueSize: 200 #BlockingQueue的最大队列数 200
+    queueSizeRejectionThreshold: 200 #即使maxQueueSize没有达到，达到queueSizeRejectionThreshold该值后，请求也会被拒绝
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: false #执行是否启用超时
+        isolation:
+          thread:
+            #hystrix超时时间的计算： (1 + MaxAutoRetries + MaxAutoRetriesNextServer) * ReadTimeout
+            timeoutInMilliseconds: 30000  #命令执行超时时间 3秒
+          semaphore:
+            maxConcurrentRequests:  50 #最大并发请求数 50
+      fallback:
+        isolation:
+          semaphore:
+            maxConcurrentRequests: 50 #如果并发数达到该设置值，请求会被拒绝和抛出异常并且fallback不会被调用。50
+
+ribbon:
+  #ribbon 读取超时时长，默认5000  ribbonTimeout = (ReadTimeout + ConnectTimeout) * (maxAutoRetries + 1) * (maxAutoRetriesNextServer + 1);
+  ReadTimeout: 8000
+  retryableStatusCodes: 404,405,500
+
+  #是否所有操作都重试,设置为false时，只会对get请求进行重试。设置为true,对所有的请求进行重试。
+  #如果设置为true,put或post等写操作，必须做做幂等性验证
+  OkToRetryOnAllOperations: false
+
+  #负载均衡规则,过滤掉那些因为一直连接失败的
+  #被标记为circuit tripped的后端server，
+  #并过滤掉那些高并发的的后端
+  #server（active connections 超过配置的阈值）
+  #NFLoadBalancerRuleClassName: com.netflix.loadbalancer.AvailabilityFilteringRule #AvailabilityFilteringRule
+  eureka:
+    enabled: true
+
+spring:
+  application:
+    name: gw-project-generator
+  thymeleaf:
+    # 配置视图路径前缀
+    prefix: classpath:/templates/
+    # 配置视图路径后缀
+    suffix: .html
+    # 关闭缓存 修改视图 刷新浏览器就显示 开发阶段务必关闭缓存 (=false)
+    cache: false
+    # 用非严格的 HTML
+    mode: html
+    encoding: UTF-8
+#    servlet:
+#      content-type: text/html
+
+  mvc:
+    throw-exception-if-no-handler-found: true
+  servlet:
+    multipart:
+      max-request-size: "2MB"
+      max-file-size: "2MB"
+
+logging:
+  level:
+    #打印SQL
+    root: info
+  path: logs/
+  file:
+    max-size: 1GB
+
+#开启监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
